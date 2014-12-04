@@ -29,6 +29,7 @@
         :body (pr-str ["Hello" :from 'Erik])})
   (GET "/secret"
        {:status 200
+        :headers {"Content-Type" "text/plain"}
         :body "Yes, very secret."})
   (ANY "*" []
        (route/not-found (slurp (io/resource "404.html")))))
