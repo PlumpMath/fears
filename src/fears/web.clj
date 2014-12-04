@@ -11,6 +11,7 @@
             [cemerick.drawbridge :as drawbridge]
             [hiccup.core :refer :all]
             [hiccup.page :refer [include-css]]
+            [hiccup.form :refer [form-to submit-button text-field]]
             [clojure.java.jdbc :as db]
             [environ.core :refer [env]]))
 
@@ -23,37 +24,45 @@
       (session/wrap-session)
       (basic/wrap-basic-authentication authenticated?)))
 
+(defn get-fears []
+  (into []
+      (concat [:ul]
+              (map (fn [fear] [:li fear])
+                   (map :content
+                        (db/query (env :database-url) ["select content from our_fears;"]))))))
+
+(defn page [& body]
+  (html
+   [:head (include-css "resources/styles.css")]
+   [:body body]))
+
+(html "hej")
+
 (defroutes app
   (ANY "/repl" {:as req}
        (drawbridge req))
-  (GET "/secret" []
+  (GET "/" []
        {:status 200
         :headers {"Content-Type" "text/html"}
-        :body (html
-               (include-css "resources/styles.css")
-               [:h1 "Yes, very secret."]
-               [:p "Blah blah."])})
-  (GET "/add/:content" [content]
+        :body (page
+               [:h1 "What do you fear?"]
+               (form-to [:get "/add"]
+                        (text-field "content" "content")
+                        (submit-button "Submit")))})
+  (GET "/add" [content]
        {:status 200
+        :headers {"Content-Type" "text/html"}
         :body (do
                 (db/insert! (env :database-url) :our_fears {:content content})
-                (html
-                 [:p (str "Added fear " content)]))})
+                (page
+                 [:p (str "Thank you.")]))})
   (GET "/fears" []
        {:status 200
         :headers {"Content-Type ""text/html"}
-        :body (html
-               (into []
-                     (concat [:ul]
-                             (map (fn [fear] [:li fear])
-                                  (map :content
-                                       (db/query (env :database-url) ["select content from our_fears;"]))))))})
-  (GET "/" []
-       {:status 200
-        :headers {"Content-Type" "text/plain"}
-        :body (pr-str ["Hellooo"])})
-  (GET "/resources/:r" [r]
-       (slurp (io/resource r)))
+        :body (page
+               (get-fears))})
+  (GET "/resources/:name" [name]
+       (slurp (io/resource name)))
   (ANY "*" []
        (route/not-found (slurp (io/resource "404.html")))))
 
