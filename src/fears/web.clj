@@ -9,6 +9,9 @@
             [ring.adapter.jetty :as jetty]
             [ring.middleware.basic-authentication :as basic]
             [cemerick.drawbridge :as drawbridge]
+            [hiccup.core :refer :all]
+            [hiccup.page :refer [include-css]]
+            [clojure.java.jdbc :as db]
             [environ.core :refer [env]]))
 
 (defn- authenticated? [user pass]
@@ -25,12 +28,32 @@
        (drawbridge req))
   (GET "/secret" []
        {:status 200
-        :headers {"Content-Type" "text/plain"}
-        :body "Yes, very secret."})
+        :headers {"Content-Type" "text/html"}
+        :body (html
+               (include-css "resources/styles.css")
+               [:h1 "Yes, very secret."]
+               [:p "Blah blah."])})
+  (GET "/add/:content" [content]
+       {:status 200
+        :body (do
+                (db/insert! (env :database-url) :our_fears {:content content})
+                (html
+                 [:p (str "Added fear " content)]))})
+  (GET "/fears" []
+       {:status 200
+        :headers {"Content-Type ""text/html"}
+        :body (html
+               (into []
+                     (concat [:ul]
+                             (map (fn [fear] [:li fear])
+                                  (map :content
+                                       (db/query (env :database-url) ["select content from our_fears;"]))))))})
   (GET "/" []
        {:status 200
         :headers {"Content-Type" "text/plain"}
-        :body (pr-str ["Hellooo" :from 'Erik])})
+        :body (pr-str ["Hellooo"])})
+  (GET "/resources/:r" [r]
+       (slurp (io/resource r)))
   (ANY "*" []
        (route/not-found (slurp (io/resource "404.html")))))
 
@@ -59,4 +82,9 @@
 (comment
   (def server (-main))
   (.stop server)
+  (env :foo)
+  (env :database-url)
   )
+
+;; (db/query "postgresql://localhost:5432/" ["select * from our_fears"])
+;;"postgresql://localhost:5432/fears"
