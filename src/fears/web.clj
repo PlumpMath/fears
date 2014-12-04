@@ -23,14 +23,14 @@
 (defroutes app
   (ANY "/repl" {:as req}
        (drawbridge req))
-  (GET "/" []
-       {:status 200
-        :headers {"Content-Type" "text/plain"}
-        :body (pr-str ["Hello" :from 'Erik])})
-  (GET "/secret"
+  (GET "/secret" []
        {:status 200
         :headers {"Content-Type" "text/plain"}
         :body "Yes, very secret."})
+  (GET "/" []
+       {:status 200
+        :headers {"Content-Type" "text/plain"}
+        :body (pr-str ["Hellooo" :from 'Erik])})
   (ANY "*" []
        (route/not-found (slurp (io/resource "404.html")))))
 
@@ -56,5 +56,7 @@
     (jetty/run-jetty (wrap-app #'app) {:port port :join? false})))
 
 ;; For interactive development:
-;; (.stop server)
-;; (def server (-main))
+(comment
+  (def server (-main))
+  (.stop server)
+  )
